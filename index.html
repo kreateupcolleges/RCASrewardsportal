@@ -22,6 +22,9 @@
   </div>
 
   <section class="container mx-auto mt-4 px-6">
+  <div class="container mx-auto mt-4 mb-4 px-6  rounded-lg p-3 font-bold bg-orange-50 text-orange-700 border border-orange-500"> 
+    <h1>NOTE: IP2 Balance Points Will Not Be Carried Over to the Next Semester. You Will Start from Zero Reward Points.</h1>
+  </div>
     <div class="bg-white shadow-lg rounded-xl p-6">
       <h2 class="text-lg font-semibold flex items-center space-x-2 text-indigo-700 mb-6">
         <i data-lucide="search" class="w-5 h-5"></i>
@@ -178,6 +181,10 @@
         </div>
 
       </div>
+  <div class="container mx-auto mt-4 px-6  rounded-lg p-3 font-bold bg-orange-100 text-orange-700 border border-orange-500"> 
+    <h1>NOTE: IP2 Balance Points Will Not Be Carried Over to the Next Semester. You Will Start from Zero Reward Points.</h1>
+  </div>
+
     </section>
   </section>
 
@@ -185,7 +192,7 @@
   lucide.createIcons();
 
   /***** CONFIG *****/
-  const CONFIG = { defaultInternal: "IP1" };
+  const CONFIG = { defaultInternal: "IP2" };
   const SHEETS = {
     IP1: { id: "1tG-bMYGzgAZYKV1X0vVpCSKaqn_5NgokeGpZNwkMqU4", name: "RCAS_1styear_IP1_RewardsSplit" },
     IP2: { id: "1yks1hpPHZPGDvqCLVmXfZCuKbEdXXzdpFKESmNvtSho", name: "RCAS_1styear_IP2_RewardsSplit"  }
@@ -204,7 +211,19 @@
       "B.Com ACCA": { id: "1MtS2Rf4-I6-MIAlErzIQeTphGYaRDq7pSuSLqSi8h7k", name: "B.Com ACCA" },
       "B.Com PA": { id: "1Rx_aQod5zex6exWieVRID3f9vbTf-4M3NOzhGo1cIn8", name: "B.Com PA" }
     },
-    IP2: { "Mech": { id: "<DUMMY_OR_REAL_ID_FOR_IP2_MECH>", name: "Mech_Internal_IP2" } }
+    IP2: {
+      "B.Com": { id: "1ycyvrsblHq-x34U3JFYw0c2gyT9T6jmrxj4Bm9kZIEc", name: "B.Com" },
+      "B.Com AF": { id: "1bC3jUPAVXRwSMEY925c8Oo4D8tIEEkl2XgobOPX9FSk", name: "B.Com AF" },
+      "B.Com BI": { id: "1ivXqE3mpCsJduV8Kuy-Mje5HVkJub6JUAAP7GrUYLlY", name: "B.Com BI" },
+      "B.Com IB": { id: "1sfkJ6j7-in9By5ksk6lUZjknVLnbwFki1-ELu2DoLM8", name: "B.Com IB" },
+      "B.Com BPS": { id: "1PxjcIgi41BIT8oXxBJgH2x4FbopZ3jkElF3L5-xYImg", name: "B.Com BPS" },
+      "B.Com CA": { id: "1N0UsEioVeG18Vbe2FwGWE2km5Gip1Hhdhaw63UhBco4", name: "B.Com CA" },
+      "B.Com CS": { id: "13px8MbyjzklnHcqBD5AXHtioXZ7Uinf-07_t3V9z2f4", name: "B.Com CS" },
+      "B.Com FS": { id: "1jvAjdKJwjF3bdkgwRJSnySfIMWLGBvNzSxnujJauV3M", name: "B.Com FS" },
+      "B.Com IT": { id: "1H8lyz7GYi4LUJ8J8PIABMe3_wYs6gSG96z1eufYwg3g", name: "B.Com IT" },
+      "B.Com ACCA": { id: "1cP_UM971iN1RHtMUB40mc6-D6pqAOnIomvm45K-rEIw", name: "B.Com ACCA" },
+      "B.Com PA": { id: "16UeadwUdktBSkbODLKS1O_1AbTw4jqfKBAoCO-5q4mE", name: "B.Com PA" }
+    },
   };
 
   const CATEGORY_CODES = ['CD','PCDP','SM','AC','RPA','SPL','OT'];
@@ -372,74 +391,90 @@
     else statusMessage.classList.add("bg-yellow-50","text-yellow-700","border","border-yellow-100");
   }
 
-  async function loadSheet(internalKey){
-    resultSection.classList.add("hidden");
-    avgPointsEl.textContent = "0"; studentPointsEl.textContent = "0"; remainingPointsEl.textContent = "0";
-    deptEl.innerHTML = `<option value="">Select Department</option>`;
-    activityEl.innerHTML = `<option value="">Select Activity</option>`;
-    showStatus("Loading sheet data for " + internalKey + " ...","info");
+async function loadSheet(internalKey){
+  resultSection.classList.add("hidden");
+  avgPointsEl.textContent = "0"; studentPointsEl.textContent = "0"; remainingPointsEl.textContent = "0";
+  deptEl.innerHTML = `<option value="">Select Department</option>`;
+  activityEl.innerHTML = `<option value="">Select Activity</option>`;
+  showStatus("Loading sheet data for " + internalKey + " ...","info");
 
-    try{
-      const sheet = SHEETS[internalKey];
-      if (!sheet) throw new Error("Sheet config missing for " + internalKey);
-      const url = `https://docs.google.com/spreadsheets/d/${sheet.id}/gviz/tq?sheet=${encodeURIComponent(sheet.name)}`;
-      const res = await fetch(url, { cache: "no-store" });
-      if(!res.ok){
-        const preview = await res.text().then(t => t.slice(0,1000));
-        console.error("Non-OK response fetching sheet:", res.status, preview);
-        showStatus(`Error loading sheet (HTTP ${res.status}). Check sheet sharing & sheet name.`, "error");
-        return false;
-      }
-      const text = await res.text();
-      if (text.trim().startsWith("<!DOCTYPE html") || text.toLowerCase().includes("signin") || text.toLowerCase().includes("google accounts")){
-        console.error("Response looks like HTML (possible permission/sign-in page). Preview:", text.slice(0,1200));
-        showStatus("Sheet fetch returned HTML (likely the sheet is not public). Make the sheet 'Anyone with link - Viewer' or Publish to web.", "error");
-        return false;
-      }
-      let json;
-      try { json = JSON.parse(text.substr(47).slice(0, -2)); } catch(e){
-        console.error("Failed to parse gviz JSON:", e, "Preview:", text.slice(0,500));
-        showStatus("Failed to parse sheet response — check sheet name/format. See console.", "error");
-        return false;
-      }
+  try{
+    const sheet = SHEETS[internalKey];
+    if (!sheet) throw new Error("Sheet config missing for " + internalKey);
 
-      headers = json.table.cols.map(c => c.label?.trim() || "").filter(Boolean);
-      headerMap = {};
-      headers.forEach(h => headerMap[normalizeLabel(h)] = h);
-      const rows = json.table.rows || [];
-      students = rows.map(r => {
-        const obj = {};
-        headers.forEach((h,i)=> obj[h] = r.c[i]?.v ?? "");
-        return obj;
-      });
+    // build GViz URL with safe params
+    const url = `https://docs.google.com/spreadsheets/d/${sheet.id}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheet.name)}&tq=${encodeURIComponent("SELECT *")}`;
+    console.log("[DEBUG] fetching sheet URL:", url);
 
-      // populate department dropdown
-      const deptHeaderKey = Object.keys(headerMap).find(k => k.includes("department"));
-      const deptHeader = deptHeaderKey ? headerMap[deptHeaderKey] : null;
-      const depts = [...new Set(students.map(s => (deptHeader ? (s[deptHeader]||"") : "").toString().trim()).filter(Boolean))].sort();
-      depts.forEach(d=>{
-        const opt=document.createElement("option"); opt.value=d; opt.textContent=d; deptEl.appendChild(opt);
-      });
+    const res = await fetch(url, { cache: "no-store" });
+    const text = await res.text();
 
-      // Activity dropdown uses all activity columns
-      const activityHeaders = headers.filter(h => !isSystemHeader(h));
-      activityHeaders.forEach(h => {
-        const meta = parseActivityName(h);
-        const label = meta.activityName && meta.activityName !== meta.raw ? meta.activityName.replace(/_/g," ") : h.replace(/^RP_/,"").replace(/_/g," ");
-        const opt = document.createElement("option");
-        opt.value = h; opt.textContent = label; activityEl.appendChild(opt);
-      });
+    // Log a preview for debugging
+    console.log(`[DEBUG] fetched sheet text preview (${sheet.id}):`, text.slice(0,1200));
 
-      showStatus(`Loaded ${students.length} rows from ${internalKey}.`, "success");
-      console.log("[DEBUG] sheet loaded:", internalKey, "headers:", headers.length, "rows:", students.length);
-      return true;
-
-    } catch(err){
-      console.error("Failed to load sheet:", err);
-      showStatus("Unexpected error while loading sheet. See console for details.", "error");
+    // Detect HTML sign-in / blocked page
+    const lower = text.toLowerCase();
+    if (text.trim().startsWith("<!doctype html") || lower.includes("accounts.google.com") || lower.includes("sign in") || lower.includes("you need access")) {
+      console.error("Response looks like HTML (permission/sign-in). Preview:", text.slice(0,800));
+      showStatus("Sheet fetch returned HTML (likely the sheet is not public). Make the sheet 'Anyone with link - Viewer' or Publish to web.", "error");
       return false;
     }
+
+    // robust gviz extraction
+    let json;
+    try {
+      const m = text.match(/setResponse\(([\s\S]*?)\)\s*;?$/);
+      if (!m) {
+        console.error("GViz wrapper not found. Preview:", text.slice(0,1200));
+        showStatus("Unexpected sheet response format — preview logged to console.", "error");
+        return false;
+      }
+      json = JSON.parse(m[1]);
+    } catch (e) {
+      console.error("Failed to parse gviz JSON:", e, "Preview:", text.slice(0,1200));
+      showStatus("Failed to parse sheet response — check sheet name/format. See console.", "error");
+      return false;
+    }
+
+    // rest of your logic unchanged...
+    headers = json.table.cols.map(c => c.label?.trim() || "").filter(Boolean);
+    headerMap = {};
+    headers.forEach(h => headerMap[normalizeLabel(h)] = h);
+    const rows = json.table.rows || [];
+    students = rows.map(r => {
+      const obj = {};
+      headers.forEach((h,i)=> obj[h] = r.c[i]?.v ?? "");
+      return obj;
+    });
+
+    // populate departments
+    const deptHeaderKey = Object.keys(headerMap).find(k => k.includes("department"));
+    const deptHeader = deptHeaderKey ? headerMap[deptHeaderKey] : null;
+    const depts = [...new Set(students.map(s => (deptHeader ? (s[deptHeader]||"") : "").toString().trim()).filter(Boolean))].sort();
+    depts.forEach(d=>{
+      const opt=document.createElement("option"); opt.value=d; opt.textContent=d; deptEl.appendChild(opt);
+    });
+
+    // activity dropdown
+    const activityHeaders = headers.filter(h => !isSystemHeader(h));
+    activityHeaders.forEach(h => {
+      const meta = parseActivityName(h);
+      const label = meta.activityName && meta.activityName !== meta.raw ? meta.activityName.replace(/_/g," ") : h.replace(/^RP_/,"").replace(/_/g," ");
+      const opt = document.createElement("option");
+      opt.value = h; opt.textContent = label; activityEl.appendChild(opt);
+    });
+
+    showStatus(`Loaded ${students.length} rows from ${internalKey}.`, "success");
+    console.log("[DEBUG] sheet loaded:", internalKey, "headers:", headers.length, "rows:", students.length);
+    return true;
+
+  } catch(err){
+    console.error("Failed to load sheet:", err);
+    showStatus("Unexpected error while loading sheet. See console for details.", "error");
+    return false;
   }
+}
+
 
   function computeAverageAndTotals(){
     const totalHeaderKey = Object.keys(headerMap).find(k => k === "total");
@@ -587,7 +622,22 @@ async function loadInternalMarksForStudent(internalKey, department, registerNo, 
       showStatus("Internal marks sheet returned HTML (not public). Make sheet 'Anyone with link - Viewer' or Publish to web.", "error");
       return;
     }
-    const json = JSON.parse(text.substr(47).slice(0, -2));
+    let json;
+try {
+  // robustly extract JSON from google.visualization.Query.setResponse(...)
+  const m = text.match(/setResponse\(([\s\S]*?)\)\s*;?$/);
+  if (!m) {
+    console.error("Internal marks sheet GViz response did not contain setResponse. Preview:", text.slice(0,1200));
+    showStatus("Unexpected internal sheet response format — preview logged to console.", "error");
+    return;
+  }
+  json = JSON.parse(m[1]);
+} catch (err) {
+  console.error("Failed to parse internal marks gviz JSON:", err, "Preview:", text.slice(0,1200));
+  showStatus("Failed to parse internal marks response — check sheet name/format. See console.", "error");
+  return;
+}
+
     const cols = json.table.cols.map(c => c.label?.trim() || "").filter(Boolean);
     const rowsRaw = (json.table.rows || []);
     const rows = rowsRaw.map(r => {
@@ -896,7 +946,7 @@ async function loadInternalMarksForStudent(internalKey, department, registerNo, 
   nextPageBtn.addEventListener("click", function(){ const totalPages = Math.max(1, Math.ceil(currentActivityRows.length / pageSize)); if (currentPage < totalPages) { currentPage++; renderActivityTable(currentActivityRows); }});
 
   (async function init(){
-    internalSelect.value = CONFIG.defaultInternal || "IP1";
+    internalSelect.value = CONFIG.defaultInternal || "IP2";
     activeInternal = internalSelect.value || "IP1";
     pageSize = Number(pageSizeSelect.value) || 10;
     const ok = await loadSheet(activeInternal);
@@ -906,8 +956,3 @@ async function loadInternalMarksForStudent(internalKey, department, registerNo, 
 </script>
 </body>
 </html>
-
-
-
-
-
